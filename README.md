@@ -111,9 +111,3 @@ mongos:
     config_settings:
     [...]
 ```
-
-## todo
-
-* add custom repos
-* global custom `pidfile`, `logfile` and `dbpath`
-* seperate config from `mongod.sls` and `mongos.sls`
