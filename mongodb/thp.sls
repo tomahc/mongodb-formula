@@ -2,13 +2,14 @@
 {% set mdb = salt["grains.filter_by"](raw_defaults, merge=salt["pillar.get"]("mongodb:lookup", {})) %}
 {% if mdb.thp.use_upstart %}
   {% set f_source = "salt://mongodb/files/thp_upstart.init" %}
-  {% set f_name = "/etc/init/disable-transparent-hugepage.conf" %}
+  {% set f_name = "/etc/init/disable-transparent-hugepages.conf" %}
   {% set s_init = "upstart" %}
 {% else %}
   {% set f_source = "salt://mongodb/files/thp_sysv.init" %}
-  {% set f_name = "/etc/init/disable-transparent-hugepage" %}
+  {% set f_name = "/etc/init/disable-transparent-hugepages" %}
   {% set s_init = "sysv" %}
 {% endif %}
+
 disable-transparent-hugepages-{{ s_init }}:
   file.managed:
     - source: {{ f_source }}
