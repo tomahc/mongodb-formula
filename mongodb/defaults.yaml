@@ -1,0 +1,29 @@
+# These values are used by initscript templates and states
+
+Debian:
+  mongod:
+    package: mongodb-org-server
+    daemon: /usr/bin/mongod
+    service: mongod
+    service_user: mongodb
+    service_group: mongodb
+    limits:
+      nofile:
+        soft: 64000
+        hard: 64000
+      nproc:
+        soft: 64000
+        hard: 64000
+
+  mongos:
+    package: mongodb-org-mongos
+    daemon: /usr/bin/mongos
+    service: mongos
+    service_user: mongodb
+    service_group: mongodb
+
+  client:
+    package: mongodb-org-shell
+
+  thp:
+    use_upstart: true

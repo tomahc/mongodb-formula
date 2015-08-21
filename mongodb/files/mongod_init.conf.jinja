@@ -1,0 +1,90 @@
+{# vim: set ft=sls : #}
+{% import_yaml "mongodb/defaults.yaml" as raw_defaults -%}
+{% set mdb = salt["grains.filter_by"](raw_defaults) -%}
+{% set mongod = mdb.get("mongod", {}) -%}
+{% do mongod.update(mongo_config) -%}
+{% set limits = mongod.get("limits", {}) -%}
+{% set cfg_settings = mongod.config_settings -%}
+
+{# if the pillar does not have a storage.dbPath, processManagement.pidFilePath or systemLog.path configured: create it -#}
+{% if cfg_settings.get("storage", {}) and cfg_settings.storage.get("dbPath", '') -%}
+{% do mongod.update({"dbPath": cfg_settings.storage.dbPath}) -%}
+{% else -%}
+{% do mongod.update({"dbPath": ["/var/lib", service_name] | join('/') }) -%}
+{% endif -%}
+
+{% if cfg_settings.get("systemLog", {}) and cfg_settings.systemLog.get("path", '') -%}
+{% do mongod.update({"logpath": cfg_settings.systemLog.path.rsplit("/", 1)[0]}) -%}
+{% else -%}
+{% do mongod.update({"logpath": "/var/log/mongodb" }) -%}
+{% endif -%}
+
+{% if cfg_settings.get("processManagement", {}) and cfg_settings.processManagement.get("pidFilePath", '') -%}
+{% do mongod.update({"pidfile": cfg_settings.processManagement.pidFilePath}) -%}
+{% else -%}
+{% do mongod.update({"pidfile": ["/var/run", service_name + ".pid"] | join('/') }) -%}
+{% endif -%}
+# File is managed by salt. Do not edit!
+# Ubuntu upstart file at /etc/init/mongod.conf
+
+# Recommended ulimit values for mongod or mongos
+# See http://docs.mongodb.org/manual/reference/ulimit/#recommended-settings
+#
+limit fsize unlimited unlimited
+limit cpu unlimited unlimited
+limit as unlimited unlimited
+limit nofile {{ limits.nofile.soft }} {{ limits.nofile.hard }}
+limit rss unlimited unlimited
+limit nproc {{ limits.nproc.soft }} {{ limits.nproc.hard }}
+
+kill timeout 300 # wait 300s between SIGTERM and SIGKILL.
+
+pre-start script
+  DAEMONUSER=${DAEMONUSER:-{{ mongod.service_user }}}
+  if [ ! -d {{ mongod.dbPath }} ]; then
+    mkdir -p {{ mongod.dbPath }} && chown {{ mongod.service_user }}:{{ mongod.service_group }} {{ mongod.dbPath }}
+  fi
+  if [ ! -d {{ mongod.logpath }} ]; then
+    mkdir -p {{ mongod.logpath }} && chown {{ mongod.service_user }}:{{ mongod.service_group }} {{ mongod.logpath }}
+  fi  
+
+  if [ ! -d {{ mongod.pidfile.rsplit('/', 1)[0] }} ]; then
+    mkdir -p {{ mongod.pidfile.rsplit('/', 1)[0] }} && chown {{ mongod.service_user }}:{{ mongod.service_group }} {{ mongod.pidfile.rsplit('/', 1)[0] }}
+  fi
+  
+  touch {{ mongod.pidfile }}
+  chown $DAEMONUSER {{ mongod.pidfile }}
+  
+end script
+
+start on runlevel [2345]
+stop on runlevel [06]
+
+script
+  ENABLE_MONGOD="yes"
+  CONF={{ mongod.config }}
+  DAEMON={{ mongod.daemon }}
+  DAEMONUSER=${DAEMONUSER:-{{ mongod.service_user }}}
+
+  if [ -f /etc/default/mongod ]; then . /etc/default/mongod; fi
+
+  # Handle NUMA access to CPUs (SERVER-3574)
+  # This verifies the existence of numactl as well as testing that the command works
+  NUMACTL_ARGS="--interleave=all"
+  if which numactl >/dev/null 2>/dev/null && numactl $NUMACTL_ARGS ls / >/dev/null 2>/dev/null
+  then
+    NUMACTL="$(which numactl) -- $NUMACTL_ARGS"
+    DAEMON_OPTS=${DAEMON_OPTS:-"--config $CONF"}
+  else
+    NUMACTL=""
+    DAEMON_OPTS="-- "${DAEMON_OPTS:-"--config $CONF"}
+  fi
+
+  if [ "x$ENABLE_MONGOD" = "xyes" ]
+  then
+    exec start-stop-daemon --start \
+        --name {{ service_name }} \
+        --chuid $DAEMONUSER \
+        --exec $NUMACTL $DAEMON $DAEMON_OPTS
+  fi
+end script

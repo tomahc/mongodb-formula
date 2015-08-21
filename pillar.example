@@ -1,0 +1,97 @@
+mongodb:
+  lookup:
+
+mongod:
+  db01:
+    config: /etc/db01.conf
+    config_settings: 
+      processManagement:
+        pidFilePath: /var/run/db01.pid
+      systemLog:
+        destination: file
+        path: /var/log/mongodb/db01.log
+        logAppend: true
+      net:
+        bindIp: 0.0.0.0
+        port: 27030
+      security:
+        authorization: disabled
+      storage:
+        dbPath: /var/lib/db01
+        mmapv1:
+          smallFiles: True
+      replication:
+        oplogSizeMB: 64
+        replSetName: rs0
+
+  db02:
+    config: /etc/db02.conf
+    config_settings: 
+      processManagement:
+        pidFilePath: /var/run/db02.pid
+      systemLog:
+        destination: file
+        path: /var/log/mongodb/db02.log
+        logAppend: true
+      net:
+        bindIp: 0.0.0.0
+        port: 27031
+      security:
+        authorization: disabled
+      storage:
+        dbPath: /var/lib/db02
+        mmapv1:
+          smallFiles: True
+      replication:
+        oplogSizeMB: 64
+        replSetName: rs0
+  cfg01:
+    config: /etc/cfg01.conf
+    config_settings: 
+      processManagement:
+        pidFilePath: /var/run/cfg01.pid
+      systemLog:
+        destination: file
+        path: /var/log/mongodb/cfg01.log
+        logAppend: true
+      net:
+        bindIp: 0.0.0.0
+        port: 27019
+      security:
+        authorization: disabled
+      storage:
+        dbPath: /var/lib/cfg01
+        mmapv1:
+          smallFiles: True
+      replication:
+        oplogSizeMB: 64
+      sharding:
+        clusterRole: configsvr 
+
+  arb01:
+    config: /etc/arb01.conf
+    config_settings:
+      net:
+        bindIp: 0.0.0.0
+        port: 47011
+      security:
+        authorization: disabled
+      replication:
+        oplogSizeMB: 64
+        replSetName: rs0
+
+mongos:
+  mongos01:
+    config: /etc/mongos01.conf
+    config_settings:
+      systemLog:
+        destination: file
+        path: /var/log/mongodb/mongos01.log
+        logAppend: true
+      net:
+        bindIp: 0.0.0.0
+        port: 5000
+      sharding:
+        configDB: 127.0.0.1:27019
+        chunkSize: 100
+

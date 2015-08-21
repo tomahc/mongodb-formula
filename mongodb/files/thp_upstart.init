@@ -1,0 +1,22 @@
+# vim : ft=sh : 
+
+kill timeout 300
+
+start on runlevl [2345]
+stop on runlevel [06]
+
+script
+    if [ -d /sys/kernel/mm/transparent_hugepage ]; then
+        thp_path=/sys/kernel/mm/transparent_hugepage
+    elif [ -d /sys/kernel/mm/redhat_transparent_hugepage ]; then
+        thp_path=/sys/kernel/mm/redhat_transparent_hugepage
+    else
+        return 0
+    fi
+
+    echo 'never' > ${thp_path}/enabled
+    echo 'never' > ${thp_path}/defrag
+
+    unset thp_path
+
+end script

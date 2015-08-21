@@ -1,0 +1,36 @@
+{# vim: set ft=sls : #}
+# File managed by salt. Do not edit!
+
+{% macro dbpath() -%}
+storage:
+  dbPath: {{ ["/var/lib", service_name] | join('/') }}
+{%- endmacro -%}
+
+{%- macro systemlog() -%}
+systemLog:
+  destination: file
+  path: {{ ["/var/log/mongodb", service_name + ".log" ] | join('/') }}
+  logAppend: true
+{%- endmacro -%}
+
+{%- macro processmanagement() -%}
+processManagement:
+  pidFilePath: {{ ["/var/run", service_name + ".pid" ] | join('/') }}
+{%- endmacro -%}
+
+{% if not mongo_config.get("storage", {}) or not mongo_config.storage.get("dbPath", '') -%}
+{{ dbpath() }} 
+{% endif -%}
+
+{% if not mongo_config.get("systemLog", {}) or not mongo_config.systemLog.get("path", '') -%}
+{{ systemlog() }}
+{% endif -%}
+
+{% if not mongo_config.get("processManagement", {}) or not mongo_config.processManagement.get("pidFilePath", '') -%}
+{{ processmanagement() }}
+{% endif -%}
+
+{% for section, settings in mongo_config.iteritems() -%}
+{{ section }}:
+  {{ settings | yaml(false) | indent(2, false) }}
+{% endfor -%}
